@@ -18,6 +18,12 @@ class ProjectController extends Controller
         ->get();
     }
 
+    public function adminIndex(Request $request)
+    {
+        $query = Project::query();
+        return Project::all();
+    }
+
     /**
      * Store a newly created resource in storage.
      */

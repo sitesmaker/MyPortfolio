@@ -13,8 +13,17 @@ const routes = [
     path: '/login',
     name: 'login',
     component: () => import('@/views/Login.vue'),
-    meta: { requiresGuest: true } // Только для гостей
+    meta: { 
+      requiresAuth: false,
+      requiresGuest: true
+   }
   },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: () => import('@/views/Dashboard.vue'),
+    meta: { requiresAuth: true }
+  }
 ];
 
 const router = createRouter({
