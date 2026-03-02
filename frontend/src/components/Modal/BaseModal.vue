@@ -6,7 +6,9 @@
             @click.self="closeModal"
         >
             <div class="modal">
-                <button @click="closeModal">Закрыть</button>
+                <button @click="closeModal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
                 <slot></slot>
             </div>
         </div>

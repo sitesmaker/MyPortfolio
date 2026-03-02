@@ -1,12 +1,19 @@
 // src/stores/projectStore.js
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import api from '@/services/api'
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref([])
   const currentProject = ref(null)
   const loading = ref(false)
+  const formDataProject = reactive({
+    title: '',
+    description: '',
+    content: '',
+    technologies: '',
+    live_url: '',
+});
 
   const fetchProjects = async () => {
     loading.value = true
@@ -44,5 +51,16 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  return { projects, currentProject, loading, fetchProjects, fetchProjectBySlug, updateProject }
+  const createProject = async () => {
+    loading.value = true
+    try {
+      const response = await api.post(`/api/project`, formDataProject)
+    } catch (error) {
+      console.error('Error fetching project:', error)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { projects, currentProject, formDataProject, loading, fetchProjects, fetchProjectBySlug, updateProject, createProject }
 })

@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-import EditableInput from '../EditableInput.vue';
+import EditableInput from '../../EditableInput.vue';
 
 const props = defineProps({
     project: {

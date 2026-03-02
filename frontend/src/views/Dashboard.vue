@@ -27,19 +27,17 @@
             :isOpenModal="isOpenModal"
             @closeModal="closeModal"
         >
-            <form>
-                <input type="text">
-                <button type="submit">Отправить</button>
-            </form>
+            <CreateProjectForm />
         </BaseModal>
     </div>
 </template>
 
 <script setup>
-import { onMounted, computed, ref } from 'vue'
+import { onMounted, computed, ref, reactive } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
-import ProjectCard from '@/components/Admin/ProjectCard.vue'
+import ProjectCard from '@/components/Admin/Project/ProjectCard.vue'
 import BaseModal from '@/components/Modal/BaseModal.vue'
+import CreateProjectForm from '@/components/Admin/Project/CreateProjectForm.vue'
 
 const projectStore = useProjectStore()
 
