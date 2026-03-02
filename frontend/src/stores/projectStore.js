@@ -20,6 +20,18 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  const updateProject = async (projectData) => {
+    loading.value = true
+    try {
+      const response = await api.put(`/api/project/${projectData.id}`, projectData)
+      projects.value = response.data
+    } catch (error) {
+      console.error('Error fetching projects:', error)
+    } finally {
+      loading.value = false
+    }
+  }
+
   const fetchProjectBySlug = async (slug) => {
     loading.value = true
     try {
@@ -32,5 +44,5 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  return { projects, currentProject, loading, fetchProjects, fetchProjectBySlug }
+  return { projects, currentProject, loading, fetchProjects, fetchProjectBySlug, updateProject }
 })
