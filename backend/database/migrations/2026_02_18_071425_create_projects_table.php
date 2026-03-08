@@ -14,15 +14,15 @@ return new class extends Migration
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->string('slug');
+            $table->string('slug')->unique();
             $table->string('description');
-            $table->string('content');
-            $table->string('image_url');
-            $table->json('technologies');
-            $table->string('github_url');
-            $table->string('live_url');
-            $table->integer('sort_order');
-            $table->boolean('is_active');
+            $table->text('content');
+            $table->string('image_url')->nullable();
+            $table->json('technologies')->nullable();
+            $table->string('github_url')->nullable();
+            $table->string('live_url')->nullable();
+            $table->integer('sort_order')->default(0);
+            $table->boolean('is_published')->default(true);
             $table->timestamps();
         });
     }

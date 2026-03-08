@@ -32,7 +32,6 @@ class ProjectController extends Controller
     public function store(ProjectRequest $request)
     {
         try {
-            // Получаем валидированные данные
             $data = $request->validated();
 
             $data['slug'] = Str::slug($data['title']);
@@ -104,6 +103,9 @@ class ProjectController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $project = Project::findOrFail($id);
+        $project->delete();
+
+        return response()->json(['message' => 'Project deleted successfully']);
     }
 }

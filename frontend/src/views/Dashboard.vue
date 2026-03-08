@@ -11,24 +11,41 @@
                 </nav>
             </div>
             <div class="panel">
-                <button @click="openModal">
-                    Создать проект
-                </button>
-                <h3>Проекты</h3>
-                <ProjectCard
-                    v-for="project in featuredProjects"
-                    :key="project.id"
-                    :project="project"
-                    @updateProject="updateProject"
-                />
+                <div class="panel__header">
+                    <h3>Проекты</h3>
+                    <button @click="openModal">
+                        Создать проект
+                    </button>
+                </div>
+                <div class="project-counter">
+                    <span>Всего проектов: </span>
+                    <b>{{ featuredProjects?.length }}</b>
+                </div>
+                <div class="panel__content">
+                    <ProjectCard
+                        v-for="project in featuredProjects"
+                        :key="project.id"
+                        :project="project"
+                        @updateProject="updateProject"
+                        @deleteProject="id => deleteProject(id)"
+                    />
+                </div>
             </div>
         </div>
         <BaseModal
+            :modalWidth="480"
             :isOpenModal="isOpenModal"
             @closeModal="closeModal"
         >
             <CreateProjectForm />
         </BaseModal>
+        <ConfirmModal
+            :isOpenModal="isOpenConfirmModal"
+            @closeModal="closeConfirmModal"
+            @giveResponse="event => confirm(event)"
+        >
+            <div class="h3">Вы действительно хотите удалить проект?</div>
+        </ConfirmModal>
     </div>
 </template>
 
@@ -38,16 +55,32 @@ import { useProjectStore } from '@/stores/projectStore'
 import ProjectCard from '@/components/Admin/Project/ProjectCard.vue'
 import BaseModal from '@/components/Modal/BaseModal.vue'
 import CreateProjectForm from '@/components/Admin/Project/CreateProjectForm.vue'
+import ConfirmModal from '@/components/Modal/ConfirmModal.vue'
 
 const projectStore = useProjectStore()
 
 const isOpenModal = ref(false)
+const isOpenConfirmModal = ref(false);
+const projectIdForDelete = ref();
 
-const featuredProjects = computed(() => projectStore.projects.slice(0, 3))
+const featuredProjects = computed(() => projectStore.projects)
 
 const updateProject = async(data) => {
-    console.log('В родителе')
     await projectStore.updateProject(data)
+}
+
+const deleteProject = (id) => {
+    projectIdForDelete.value = id
+    isOpenConfirmModal.value = true
+}
+
+const confirm = async (event) => {
+    if(event) {
+        await projectStore.deleteProject(projectIdForDelete.value)
+        isOpenConfirmModal.value = false;
+    } else {
+        isOpenConfirmModal.value = false;
+    }
 }
 
 const openModal = () => {
@@ -56,6 +89,10 @@ const openModal = () => {
 
 const closeModal = () => {
     isOpenModal.value = false
+}
+
+const closeConfirmModal = () => {
+    isOpenConfirmModal.value = false;
 }
 
 onMounted(() => {
@@ -74,5 +111,9 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+.project-counter {
+    margin-bottom: 15px;
 }
 </style>

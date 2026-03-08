@@ -28,8 +28,8 @@ class ProjectRequest extends FormRequest
             'technologies' => 'nullable|string|max:500',
             'live_url' => 'nullable|url|max:255',
             'github_url' => 'nullable|url|max:255',
-            'image' => 'nullable|image|max:2048', // 2MB max
-            'status' => 'sometimes|in:draft,published,archived',
+            'image_url' => 'nullable|image|max:2048',
+            'is_published' => 'sometimes|boolean',
         ];
     }
 

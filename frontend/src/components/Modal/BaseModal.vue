@@ -5,8 +5,11 @@
             v-if="isOpenModal"
             @click.self="closeModal"
         >
-            <div class="modal">
-                <button @click="closeModal">
+            <div class="modal" :style="`width:${modalWidth}px`">
+                <button
+                    class="modal__close btn btn--delete"
+                    @click="closeModal"
+                >
                     <i class="fa-solid fa-xmark"></i>
                 </button>
                 <slot></slot>
@@ -22,6 +25,10 @@ const props = defineProps({
     isOpenModal: {
         type: Boolean,
         default: false,
+    },
+    modalWidth: {
+        type: Number,
+        default: 767,
     }
 })
 const emit = defineEmits(['closeModal'])
@@ -67,5 +74,12 @@ watch(() => props.isOpenModal, (newValue) => {
     max-width: 767px;
     width: 100%;
     margin: 0 40px;
+    position: relative;
+
+    &__close {
+        position: absolute;
+        top: -60px;
+        right: 0;
+    }
 }
 </style>

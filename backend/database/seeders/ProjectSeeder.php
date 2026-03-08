@@ -23,7 +23,7 @@ class ProjectSeeder extends Seeder
             'github_url' => 'https://github.com/username/project',
             'live_url' => 'https://project.com',
             'sort_order' => 1,
-            'is_active' => true
+            'is_published' => true
         ]);
     }
 }

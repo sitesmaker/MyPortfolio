@@ -7,6 +7,7 @@ export const useProjectStore = defineStore('project', () => {
   const projects = ref([])
   const currentProject = ref(null)
   const loading = ref(false)
+  const responseMessage = ref('');
   const formDataProject = reactive({
     title: '',
     description: '',
@@ -36,6 +37,7 @@ export const useProjectStore = defineStore('project', () => {
       console.error('Error fetching projects:', error)
     } finally {
       loading.value = false
+      fetchProjects()
     }
   }
 
@@ -58,9 +60,17 @@ export const useProjectStore = defineStore('project', () => {
     } catch (error) {
       console.error('Error fetching project:', error)
     } finally {
+      responseMessage.value = response.message;
       loading.value = false
+      fetchProjects()
     }
   }
 
-  return { projects, currentProject, formDataProject, loading, fetchProjects, fetchProjectBySlug, updateProject, createProject }
+  const deleteProject = async (id) => {
+    const response = await api.delete(`/api/project/${id}`)
+    console.log(response)
+    fetchProjects()
+  }
+
+  return { projects, currentProject, formDataProject, loading, fetchProjects, fetchProjectBySlug, updateProject, createProject, deleteProject }
 })
