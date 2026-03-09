@@ -26,4 +26,9 @@ class Project extends Model
         'technologies' => 'array',
         'is_active' => 'boolean'
     ];
+
+    public function images()
+    {
+        return $this->hasMany(Image::class)->orderBy('sort');
+    }
 }

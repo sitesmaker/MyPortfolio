@@ -1,0 +1,9 @@
+p {
+    font-size: 1.2rem;
+    line-height: 1.5rem;
+    margin-bottom: 15px;
+}
+
+p span {
+    color: var(--accent-color);
+}

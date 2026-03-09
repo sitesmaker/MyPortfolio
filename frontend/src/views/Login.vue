@@ -5,23 +5,25 @@
 
     <form @submit.prevent="handleLogin">
       <div class="form-group">
-        <label>Email:</label>
         <input
             type="email"
             v-model="form.email"
             required
+            placeholder=""
             :disabled="authStore.loading"
         />
+        <label>Email</label>
       </div>
 
       <div class="form-group">
-        <label>Пароль:</label>
         <input
             type="password"
             v-model="form.password"
             required
+            placeholder=""
             :disabled="authStore.loading"
         />
+        <label>Пароль</label>
       </div>
 
       <button type="submit" :disabled="authStore.loading">
@@ -89,13 +91,6 @@ const handleLogin = async () => {
 .form-group label {
   display: block;
   margin-bottom: 5px;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
 }
 
 button {

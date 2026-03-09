@@ -3,6 +3,19 @@
         @submit.prevent="projectStore.createProject"
         class="form form--create-project"
     >
+        <input 
+        type="file" 
+        multiple 
+        accept="image/*"
+        @change="handleFileSelect"
+        >
+        
+        <!-- Превью выбранных изображений -->
+        <div class="preview" v-for="(file, index) in projectStore.formDataProject.files" :key="index">
+        <img :src="file.preview" width="100">
+        <button type="button" @click="removeFile(index)">Удалить</button>
+        </div>
+
         <div class="form-group">
             <input
                 type="text"
@@ -56,14 +69,33 @@
             <label for="live_url">Ссылка на проект</label>
         </div>
         <button type="submit">Создать проект</button>
-        {{ projectStore.responseMessage }}
     </form>
 </template>
 
 <script setup>
+
     import { useProjectStore } from '@/stores/projectStore'
 
     const projectStore = useProjectStore()
+
+    const handleFileSelect = (event) => {
+    const files = Array.from(event.target.files);
+    
+    files.forEach(file => {
+        const reader = new FileReader();
+            reader.onload = (e) => {
+                projectStore.formDataProject.files.push({
+                    file: file,
+                    preview: e.target.result
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removeFile = (index) => {
+        projectStore.formDataProject.files.splice(index, 1);
+    };
 </script>
 
 <style lang="scss" scoped>

@@ -47,7 +47,6 @@
 
 .hero {
     padding: 100px 0;
-    height: 100vh;
 
     &__wrapper {
         display: flex;

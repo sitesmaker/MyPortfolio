@@ -6,12 +6,20 @@
 
     <AboutMe />
 
+    <section>
     <div class="projects" v-if="!projectStore.loading">
       <div class="container">
         <h2>Проекты в которых я принимал участие</h2>
         <div class="project-grid">
           <div v-for="project in featuredProjects" :key="project.id" class="project-card">
-            <img :src="project.image_url" :alt="project.title">
+            <div class="project__images">
+              <img
+                v-for="(image, idx) in project.images"
+                :key="idx"
+                :src="image.full_url"
+                alt=""
+              >
+            </div>
             <h3>{{ project.title }}</h3>
             <p>{{ project.description }}</p>
             <p>{{ project.content }}</p>
@@ -20,6 +28,7 @@
         </div>
       </div>
     </div>
+    </section>
   </div>
 </template>
 
@@ -37,3 +46,14 @@ onMounted(() => {
   projectStore.fetchProjects()
 })
 </script>
+
+<style lang="scss" scoped>
+.project__images {
+  display: flex;
+  gap: 10px;
+
+  img {
+    width: 25%;
+  }
+}
+</style>

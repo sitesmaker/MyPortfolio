@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Project;
+use App\Models\Image;
 use App\Http\Requests\ProjectRequest;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProjectController extends Controller
 {
@@ -16,60 +19,46 @@ class ProjectController extends Controller
     public function index()
     {
         return Project::where('is_active', true)
-        ->orderBy('sort_order')
-        ->get();
+            ->with('images')
+            ->orderBy('sort_order')
+            ->get();
     }
 
     public function adminIndex(Request $request)
     {
-        $query = Project::query();
-        return Project::all();
+        return Project::with('images')->get();
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(ProjectRequest $request)
     {
         try {
             $data = $request->validated();
-
             $data['slug'] = Str::slug($data['title']);
-
-            if (!isset($data['image_url'])) {
-                $data['image_url'] = null; // или '/images/default-project.jpg'
-            }
-
-            // Обработка изображения
-            if ($request->hasFile('image')) {
-                $path = $request->file('image')->store('projects', 'public');
-                $data['image'] = $path;
-            }
-
-            // Добавляем ID текущего пользователя
             $data['user_id'] = auth()->id();
-
-            // Устанавливаем статус по умолчанию, если не указан
             $data['status'] = $data['status'] ?? 'draft';
 
             // Создаем проект
             $project = Project::create($data);
+
+            // Обработка множественных изображений
+            if ($request->hasFile('images')) {
+                $this->uploadImages($request->file('images'), $project);
+            }
 
             // Прикрепляем теги, если они есть
             if ($request->has('tags')) {
                 $project->tags()->sync($request->tags);
             }
 
-            // Возвращаем успешный ответ
+            // Возвращаем проект с загруженными изображениями
             return response()->json([
                 'success' => true,
                 'message' => 'Проект успешно создан',
-                'project' => $project->load('user', 'tags')
+                'project' => $project->load('user', 'tags', 'images')
             ], 201);
 
         } catch (\Exception $e) {
-            // Логируем ошибку
-            \Log::error('Ошибка создания проекта: ' . $e->getMessage());
+            Log::error('Ошибка создания проекта: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -79,33 +68,152 @@ class ProjectController extends Controller
         }
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
-        $project = Project::findOrFail($id);
-        $project->update($request->all());
+        try {
+            $project = Project::findOrFail($id);
 
-        return response()->json($project);
+            // Валидируем данные
+            $validated = $request->validate([
+                'title' => 'sometimes|string|max:255',
+                'description' => 'sometimes|string',
+                'content' => 'sometimes|string',
+                'status' => 'sometimes|in:draft,published,archived',
+                'is_active' => 'sometimes|boolean',
+                'sort_order' => 'sometimes|integer',
+                'tags' => 'sometimes|array',
+                'tags.*' => 'exists:tags,id',
+                'images' => 'sometimes|array',
+                'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            ]);
+
+            // Обновляем slug, если изменился title
+            if (isset($validated['title']) && $validated['title'] !== $project->title) {
+                $validated['slug'] = Str::slug($validated['title']);
+            }
+
+            // Обновляем проект
+            $project->update($validated);
+
+            // Обработка новых изображений
+            if ($request->hasFile('images')) {
+                $this->uploadImages($request->file('images'), $project);
+            }
+
+            // Обновляем теги
+            if ($request->has('tags')) {
+                $project->tags()->sync($request->tags);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Проект успешно обновлен',
+                'project' => $project->load('user', 'tags', 'images')
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Ошибка обновления проекта: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Ошибка при обновлении проекта',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
-        $project = Project::findOrFail($id);
-        $project->delete();
+        try {
+            $project = Project::findOrFail($id);
 
-        return response()->json(['message' => 'Project deleted successfully']);
+            // Удаляем все связанные изображения (файлы и записи в БД)
+            foreach ($project->images as $image) {
+                Storage::disk('public')->delete($image->path);
+                $image->delete();
+            }
+
+            // Удаляем проект
+            $project->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Проект успешно удален'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Ошибка удаления проекта: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Ошибка при удалении проекта',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function show(string $id)
+    {
+        try {
+            $project = Project::with('images', 'tags')->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'project' => $project
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Проект не найден'
+            ], 404);
+        }
+    }
+
+    public function deleteImage($imageId)
+    {
+        try {
+            $image = Image::findOrFail($imageId);
+
+            // Удаляем файл
+            Storage::disk('public')->delete($image->path);
+
+            // Удаляем запись из БД
+            $image->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Изображение удалено'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ошибка при удалении изображения'
+            ], 500);
+        }
+    }
+
+    private function uploadImages($files, $project)
+    {
+        $sort = $project->images()->max('sort') + 1;
+
+        foreach ($files as $file) {
+            // Генерируем уникальное имя
+            $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+
+            // Путь: projects/{project_id}/filename.jpg
+            $path = $file->storeAs(
+                'projects/' . $project->id,
+                $filename,
+                'public'
+            );
+
+            // Создаем запись в БД
+            $project->images()->create([
+                'path' => $path,
+                'sort' => $sort++
+            ]);
+        }
     }
 }
