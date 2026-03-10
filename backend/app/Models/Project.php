@@ -19,12 +19,12 @@ class Project extends Model
         'github_url',
         'live_url',
         'sort_order',
-        'is_active'
+        'is_published'
     ];
 
     protected $casts = [
         'technologies' => 'array',
-        'is_active' => 'boolean'
+        'is_published' => 'boolean'
     ];
 
     public function images()

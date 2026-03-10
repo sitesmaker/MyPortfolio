@@ -15,7 +15,8 @@ export const useProjectStore = defineStore('project', () => {
     content: '',
     technologies: '',
     live_url: '',
-    files: [], // Здесь хранятся объекты с file и preview
+    files: [],
+    deleted_images: [],
   })
 
   const fetchProjects = async () => {
@@ -93,55 +94,82 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  const updateProject = async (id) => {
+ const updateProject = async (projectData) => {
     loading.value = true
     responseMessage.value = ''
     
     try {
-      const formData = new FormData()
-      
-      // Добавляем текстовые поля
-      formData.append('title', formDataProject.title)
-      formData.append('description', formDataProject.description)
-      formData.append('content', formDataProject.content)
-      formData.append('technologies', formDataProject.technologies)
-      formData.append('live_url', formDataProject.live_url)
-      
-      // Добавляем новые файлы (если есть)
-      if (formDataProject.files && formDataProject.files.length > 0) {
-        formDataProject.files.forEach((item, index) => {
-          if (item.file instanceof File) {
-            formData.append(`images[${index}]`, item.file)
-          }
-        })
-      }
-
-      // Для PUT запроса нужно использовать _method или axios.put
-      formData.append('_method', 'PUT')
-      
-      const response = await api.post(`/api/project/${id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+        console.log('🔄 Updating project:', projectData)
+        
+        const formData = new FormData()
+        
+        // Добавляем все поля
+        formData.append('title', projectData.title || '')
+        formData.append('description', projectData.description || '')
+        formData.append('content', projectData.content || '')
+        formData.append('technologies', projectData.technologies || '')
+        formData.append('live_url', projectData.live_url || '')
+        formData.append('is_published', projectData.is_published ? '1' : '0')
+        
+        // ДОБАВЛЕНО: Отправляем ID существующих изображений, которые нужно сохранить
+        if (projectData.images && projectData.images.length > 0) {
+            // Отправляем только те изображения, которые не помечены на удаление
+            const existingImages = projectData.images
+                .filter(img => !img.isNew && !projectData.deleted_images?.includes(img.id))
+                .map(img => img.id)
+            
+            if (existingImages.length > 0) {
+                formData.append('existing_images', JSON.stringify(existingImages))
+            }
         }
-      })
 
-      responseMessage.value = 'Проект успешно обновлен!'
-      await fetchProjects()
-      
-      return response.data
+        // ДОБАВЛЕНО: Отправляем ID удаленных изображений
+        if (projectData.deleted_images && projectData.deleted_images.length > 0) {
+            formData.append('deleted_images', JSON.stringify(projectData.deleted_images))
+        }
+        
+        // Добавляем новые файлы (если есть)
+        if (projectData.new_files && projectData.new_files.length > 0) {
+            projectData.new_files.forEach((file, index) => {
+                formData.append(`images[${index}]`, file)
+            })
+        }
+
+        // Добавляем метод для Laravel
+        formData.append('_method', 'PUT')
+        
+        // Отправляем POST запрос с FormData
+        const response = await api.post(`/api/project/${projectData.id}`, formData, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+
+        console.log('✅ Update successful:', response.data)
+        
+        responseMessage.value = 'Проект успешно обновлен!'
+        await fetchProjects()
+        
+        return response.data
 
     } catch (error) {
-      console.error('Error updating project:', error)
-      responseMessage.value = error.response?.data?.message || 'Ошибка при обновлении проекта'
-      throw error
+        console.error('❌ Update failed:', error)
+        console.error('Error details:', error.response?.data)
+        
+        if (error.response?.data?.errors) {
+            const errors = Object.values(error.response.data.errors).flat()
+            responseMessage.value = errors.join(', ')
+        } else {
+            responseMessage.value = error.response?.data?.message || 'Ошибка при обновлении проекта'
+        }
+        
+        throw error
     } finally {
-      loading.value = false
+        loading.value = false
     }
-  }
+}
 
   const deleteProject = async (id) => {
-    if (!confirm('Удалить проект?')) return
-    
     loading.value = true
     try {
       const response = await api.delete(`/api/project/${id}`)

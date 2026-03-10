@@ -42,7 +42,7 @@
         <ConfirmModal
             :isOpenModal="isOpenConfirmModal"
             @closeModal="closeConfirmModal"
-            @giveResponse="event => confirm(event)"
+            @giveResponse="event => confirmAction(event)"
         >
             <div class="h3">Вы действительно хотите удалить проект?</div>
         </ConfirmModal>
@@ -74,7 +74,7 @@ const deleteProject = (id) => {
     isOpenConfirmModal.value = true
 }
 
-const confirm = async (event) => {
+const confirmAction = async (event) => {
     if(event) {
         await projectStore.deleteProject(projectIdForDelete.value)
         isOpenConfirmModal.value = false;

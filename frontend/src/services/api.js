@@ -13,21 +13,46 @@ const api = axios.create({
     }
 })
 
-// Логирование запросов (опционально, для отладки)
-api.interceptors.request.use(request => {
-    console.log(`🌐 [${request.method.toUpperCase()}] ${request.url}`, request.data || '');
-    return request;
-});
+// Интерцептор для запросов
+api.interceptors.request.use(
+    config => {
+        // Логируем запросы для отладки
+        console.log(`🌐 [${config.method?.toUpperCase()}] ${config.url}`)
+        
+        // Если это FormData, выводим содержимое для отладки
+        if (config.data instanceof FormData) {
+            for (let pair of config.data.entries()) {
+                if (pair[0] !== 'images[]' && pair[0] !== 'new_images[]') {
+                    console.log(`   ${pair[0]}:`, pair[1])
+                } else {
+                    console.log(`   ${pair[0]}: [File] ${pair[1].name}`)
+                }
+            }
+            
+            delete config.headers['Content-Type']
+        }
+        
+        return config
+    },
+    error => {
+        return Promise.reject(error)
+    }
+)
 
 api.interceptors.response.use(
     response => {
-        console.log(`✅ [${response.status}] ${response.config.url}`);
-        return response;
+        return response
     },
     error => {
-        console.error(`❌ [${error.response?.status}] ${error.config?.url}`, error.response?.data);
-        return Promise.reject(error);
+        console.error('❌ API Error:', {
+            url: error.config?.url,
+            method: error.config?.method,
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message
+        })
+        return Promise.reject(error)
     }
-);
+)
 
-export default api;
+export default api

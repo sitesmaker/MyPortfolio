@@ -18,13 +18,13 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        return Project::where('is_active', true)
+        return Project::where('is_published', 1)
             ->with('images')
             ->orderBy('sort_order')
             ->get();
     }
 
-    public function adminIndex(Request $request)
+    public function indexAdmin(Request $request)
     {
         return Project::with('images')->get();
     }
@@ -54,7 +54,6 @@ class ProjectController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Проект успешно создан',
-                'project' => $project->load('user', 'tags', 'images')
             ], 201);
 
         } catch (\Exception $e) {
@@ -78,13 +77,9 @@ class ProjectController extends Controller
                 'title' => 'sometimes|string|max:255',
                 'description' => 'sometimes|string',
                 'content' => 'sometimes|string',
-                'status' => 'sometimes|in:draft,published,archived',
-                'is_active' => 'sometimes|boolean',
-                'sort_order' => 'sometimes|integer',
-                'tags' => 'sometimes|array',
-                'tags.*' => 'exists:tags,id',
-                'images' => 'sometimes|array',
-                'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+                'technologies' => 'sometimes|string',
+                'live_url' => 'sometimes|url|nullable',
+                'is_published' => 'sometimes|boolean',
             ]);
 
             // Обновляем slug, если изменился title
@@ -95,24 +90,52 @@ class ProjectController extends Controller
             // Обновляем проект
             $project->update($validated);
 
+            // ДОБАВЛЕНО: Обработка удаленных изображений
+            if ($request->has('deleted_images')) {
+                $deletedImages = json_decode($request->input('deleted_images'), true);
+                if (is_array($deletedImages) && count($deletedImages) > 0) {
+                    foreach ($deletedImages as $imageId) {
+                        $image = Image::find($imageId);
+                        if ($image) {
+                            // Удаляем файл
+                            Storage::disk('public')->delete($image->path);
+                            // Удаляем запись из БД
+                            $image->delete();
+                        }
+                    }
+                }
+            }
+
+            // ДОБАВЛЕНО: Обработка существующих изображений (их порядок)
+            if ($request->has('existing_images')) {
+                $existingImages = json_decode($request->input('existing_images'), true);
+                if (is_array($existingImages)) {
+                    // Можно обновить сортировку или другие поля
+                    foreach ($existingImages as $index => $imageId) {
+                        Image::where('id', $imageId)
+                            ->where('project_id', $project->id)
+                            ->update(['sort' => $index]);
+                    }
+                }
+            }
+
             // Обработка новых изображений
             if ($request->hasFile('images')) {
                 $this->uploadImages($request->file('images'), $project);
             }
 
-            // Обновляем теги
-            if ($request->has('tags')) {
-                $project->tags()->sync($request->tags);
-            }
+            // Загружаем обновленные отношения
+            $project->load('images');
 
             return response()->json([
                 'success' => true,
                 'message' => 'Проект успешно обновлен',
-                'project' => $project->load('user', 'tags', 'images')
+                'project' => $project
             ]);
 
         } catch (\Exception $e) {
             Log::error('Ошибка обновления проекта: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
