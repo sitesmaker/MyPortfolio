@@ -90,38 +90,30 @@ class ProjectController extends Controller
             // Обновляем проект
             $project->update($validated);
 
-            // ДОБАВЛЕНО: Обработка удаленных изображений
-            if ($request->has('deleted_images')) {
-                $deletedImages = json_decode($request->input('deleted_images'), true);
-                if (is_array($deletedImages) && count($deletedImages) > 0) {
-                    foreach ($deletedImages as $imageId) {
-                        $image = Image::find($imageId);
-                        if ($image) {
-                            // Удаляем файл
-                            Storage::disk('public')->delete($image->path);
-                            // Удаляем запись из БД
-                            $image->delete();
-                        }
-                    }
+            // ОБРАБОТКА ИЗОБРАЖЕНИЯ
+            // Проверяем, нужно ли удалить существующее изображение
+            if ($request->has('deleted_image') && $request->deleted_image) {
+                $imageId = $request->deleted_image;
+                $image = Image::find($imageId);
+
+                if ($image && $image->project_id == $project->id) {
+                    // Удаляем файл
+                    Storage::disk('public')->delete($image->path);
+                    // Удаляем запись из БД
+                    $image->delete();
                 }
             }
 
-            // ДОБАВЛЕНО: Обработка существующих изображений (их порядок)
-            if ($request->has('existing_images')) {
-                $existingImages = json_decode($request->input('existing_images'), true);
-                if (is_array($existingImages)) {
-                    // Можно обновить сортировку или другие поля
-                    foreach ($existingImages as $index => $imageId) {
-                        Image::where('id', $imageId)
-                            ->where('project_id', $project->id)
-                            ->update(['sort' => $index]);
-                    }
+            // Проверяем, загружено ли новое изображение
+            if ($request->hasFile('image')) {
+                // Если у проекта уже есть изображения, удаляем их все (для одиночного изображения)
+                foreach ($project->images as $existingImage) {
+                    Storage::disk('public')->delete($existingImage->path);
+                    $existingImage->delete();
                 }
-            }
 
-            // Обработка новых изображений
-            if ($request->hasFile('images')) {
-                $this->uploadImages($request->file('images'), $project);
+                // Загружаем новое изображение
+                $this->uploadSingleImage($request->file('image'), $project);
             }
 
             // Загружаем обновленные отношения
@@ -143,6 +135,28 @@ class ProjectController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Загрузка одного изображения
+     */
+    private function uploadSingleImage($file, $project)
+    {
+        // Генерируем уникальное имя
+        $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+
+        // Путь: projects/{project_id}/filename.jpg
+        $path = $file->storeAs(
+            'projects/' . $project->id,
+            $filename,
+            'public'
+        );
+
+        // Создаем запись в БД
+        $project->images()->create([
+            'path' => $path,
+            'sort' => 0 // Для одиночного изображения сортировка не важна
+        ]);
     }
 
     public function destroy(string $id)

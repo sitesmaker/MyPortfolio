@@ -5,6 +5,7 @@ import api from '@/services/api'
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref([])
+  const projectsAdmin = ref([])
   const currentProject = ref(null)
   const loading = ref(false)
   const responseMessage = ref('')
@@ -24,6 +25,19 @@ export const useProjectStore = defineStore('project', () => {
     try {
       const response = await api.get('/api/projects')
       projects.value = response.data
+    } catch (error) {
+      console.error('Error fetching projects:', error)
+      responseMessage.value = 'Ошибка при загрузке проектов'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const fetchProjectsAdmin = async () => {
+    loading.value = true
+    try {
+      const response = await api.get('/api/admin/projects')
+      projectsAdmin.value = response.data
     } catch (error) {
       console.error('Error fetching projects:', error)
       responseMessage.value = 'Ошибка при загрузке проектов'
@@ -62,9 +76,10 @@ export const useProjectStore = defineStore('project', () => {
       
       // Добавляем файлы (ВАЖНО: добавляем как массив)
       if (formDataProject.files && formDataProject.files.length > 0) {
-        formDataProject.files.forEach((item, index) => {
-          // Ключ должен быть images[], чтобы Laravel понял как массив
-          formData.append(`images[${index}]`, item.file)
+        formDataProject.files.forEach((item) => {
+          // Используем images[] для всех файлов
+          console.log(item)
+          formData.append(`images[]`, item)
         })
       }
 
@@ -81,7 +96,7 @@ export const useProjectStore = defineStore('project', () => {
       resetForm()
       
       // Обновляем список проектов
-      await fetchProjects()
+      await fetchProjectsAdmin()
       
       return response.data
 
@@ -94,7 +109,7 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
- const updateProject = async (projectData) => {
+  const updateProject = async (projectData) => {
     loading.value = true
     responseMessage.value = ''
     
@@ -111,28 +126,17 @@ export const useProjectStore = defineStore('project', () => {
         formData.append('live_url', projectData.live_url || '')
         formData.append('is_published', projectData.is_published ? '1' : '0')
         
-        // ДОБАВЛЕНО: Отправляем ID существующих изображений, которые нужно сохранить
-        if (projectData.images && projectData.images.length > 0) {
-            // Отправляем только те изображения, которые не помечены на удаление
-            const existingImages = projectData.images
-                .filter(img => !img.isNew && !projectData.deleted_images?.includes(img.id))
-                .map(img => img.id)
-            
-            if (existingImages.length > 0) {
-                formData.append('existing_images', JSON.stringify(existingImages))
+        // ИСПРАВЛЕНО: Для одиночного изображения используем imageData из компонента
+        if (projectData.imageData) {
+            // Добавляем новое изображение если есть
+            if (projectData.imageData.newFile) {
+                formData.append('image', projectData.imageData.newFile)
             }
-        }
-
-        // ДОБАВЛЕНО: Отправляем ID удаленных изображений
-        if (projectData.deleted_images && projectData.deleted_images.length > 0) {
-            formData.append('deleted_images', JSON.stringify(projectData.deleted_images))
-        }
-        
-        // Добавляем новые файлы (если есть)
-        if (projectData.new_files && projectData.new_files.length > 0) {
-            projectData.new_files.forEach((file, index) => {
-                formData.append(`images[${index}]`, file)
-            })
+            
+            // Добавляем ID удаленного изображения если есть
+            if (projectData.imageData.deletedId) {
+                formData.append('deleted_image', projectData.imageData.deletedId)
+            }
         }
 
         // Добавляем метод для Laravel
@@ -141,14 +145,25 @@ export const useProjectStore = defineStore('project', () => {
         // Отправляем POST запрос с FormData
         const response = await api.post(`/api/project/${projectData.id}`, formData, {
             headers: {
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Content-Type': 'multipart/form-data'
             }
         })
 
         console.log('✅ Update successful:', response.data)
         
         responseMessage.value = 'Проект успешно обновлен!'
-        await fetchProjects()
+
+        console.log(response.data.project)
+        
+        if (response.data.project) {
+          const index = projectsAdmin.value.findIndex(p => p.id === response.data.project.id)
+          if (index !== -1) {
+              // Просто заменяем объект в массиве - Vue реактивность сработает
+              projectsAdmin.value[index] = response.data.project
+              console.log(projectsAdmin)
+          }
+        }
         
         return response.data
 
@@ -167,14 +182,14 @@ export const useProjectStore = defineStore('project', () => {
     } finally {
         loading.value = false
     }
-}
+  }
 
   const deleteProject = async (id) => {
     loading.value = true
     try {
       const response = await api.delete(`/api/project/${id}`)
       responseMessage.value = 'Проект удален'
-      await fetchProjects()
+      await fetchProjectsAdmin()
       return response.data
     } catch (error) {
       console.error('Error deleting project:', error)
@@ -207,11 +222,13 @@ export const useProjectStore = defineStore('project', () => {
 
   return {
     projects,
+    projectsAdmin,
     currentProject,
     formDataProject,
     loading,
     responseMessage,
     fetchProjects,
+    fetchProjectsAdmin,
     fetchProjectBySlug,
     createProject,
     updateProject,

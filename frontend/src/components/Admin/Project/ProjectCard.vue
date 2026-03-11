@@ -1,49 +1,13 @@
 <template>
     <div class="project-card">
-            <!-- Текущие изображения -->
-            <div class="project-card__images">
-                <div 
-                    v-for="(image, idx) in currentImages" 
-                    :key="idx" 
-                    class="project-card__image-wrapper"
-                    :class="{ 'editing': isEditing }"
-                >
-                    <img
-                        :src="image.full_url || image.preview"
-                        :alt="project.title"
-                    >
-                    <!-- Кнопка удаления изображения (только в режиме редактирования) -->
-                    <button 
-                        v-if="isEditing && !image.isNew"
-                        class="project-card__image-delete"
-                        @click="removeExistingImage(image.id)"
-                        title="Удалить изображение"
-                    >
-                        <i class="fa-solid fa-times"></i>
-                    </button>
-                    <!-- Индикатор нового изображения -->
-                    <span v-if="image.isNew" class="project-card__image-new">Новое</span>
-                </div>
-          
-
-                <!-- Кнопка добавления изображений (только в режиме редактирования) -->
-                <div v-if="isEditing" class="project-card__image-upload">
-                    <label for="image-upload" class="upload-btn">
-                        <i class="fa-solid fa-plus"></i>
-                        Добавить изображения
-                    </label>
-                    <input
-                        id="image-upload"
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        @change="handleImageUpload"
-                        style="display: none;"
-                    >
-                    <span v-if="newFiles.length > 0" class="upload-count">
-                        Выбрано: {{ newFiles.length }} файл(ов)
-                    </span>
-                </div>
+        <div class="project-card__images">
+            <ImageUploaderSingle 
+                ref="imageUploader"
+                :existing-images="editableProject.images || []"
+                :component-id="'project-' + project.id"
+                :is-editing="isEditing"
+                @images-changed="handleImagesChanged"
+            />
         </div>
         <div class="project-card__content">
             <div class="form-group">
@@ -137,7 +101,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch, nextTick } from 'vue'
+import ImageUploaderSingle from '@/components/ImageUploaderSingle.vue'
 
 const props = defineProps({
     project: {
@@ -146,50 +111,100 @@ const props = defineProps({
     }
 })
 
-const newFiles = ref([])
-const deletedImageIds = ref([])
+// Состояния
+const isEditing = ref(false)
+const isUpdating = ref(false)
+const editableProject = ref({ ...props.project })
+const imageData = ref({
+    newFile: null,
+    deletedId: null,
+    hasChanges: false
+})
+const localProject = ref({ ...props.project }) // Локальная копия
 
-// Текущие изображения (существующие + новые)
-const currentImages = computed(() => {
-    const existing = (editableProject.value.images || []).map(img => ({
-        ...img,
-        isNew: false
-    }))
+// Ссылка на компонент ImageUploader
+const imageUploader = ref(null)
+
+// ВАЖНО: Следим за изменениями пропса и обновляем локальные данные
+watch(() => props.project, async (newProject) => {
+    console.log('Project prop changed:', newProject)
     
-    const news = newFiles.value.map((file, index) => ({
-        id: `new-${index}`,
-        full_url: URL.createObjectURL(file),
-        preview: URL.createObjectURL(file),
-        isNew: true,
-        file: file
-    }))
+    // Создаем глубокую копию для обновления реактивности
+    localProject.value = JSON.parse(JSON.stringify(newProject))
     
-    return [...existing, ...news]
+    if (!isEditing.value) {
+        editableProject.value = { ...localProject.value }
+    }
+    
+    // Принудительно обновляем компонент изображения
+    await nextTick()
 })
 
-const isEditing = ref(false)
-const editableProject = ref({ ...props.project })
+// Обработчик изменений изображений
+const handleImagesChanged = (data) => {
+    imageData.value = data
+}
 
+// Начало редактирования
 const startEditing = () => {
-    editableProject.value = JSON.parse(JSON.stringify(props.project))
+    editableProject.value = JSON.parse(JSON.stringify(localProject.value))
     isEditing.value = true
 }
 
+// Отмена редактирования
 const cancelEditing = () => {
     isEditing.value = false
-    editableProject.value = { ...props.project }
+    editableProject.value = { ...localProject.value }
+    if (imageUploader.value) {
+        imageUploader.value.clearImageData()
+    }
+    imageData.value = { newFile: null, deletedId: null, hasChanges: false }
+}
+
+const deleteProject = async () => {
+    emit('deleteProject', localProject.value.id)
+}
+
+// Обновление проекта
+const updateProject = async () => {
+    isUpdating.value = true
+    
+    try {
+        const projectData = {
+            id: props.project.id,
+            title: editableProject.value.title || '',
+            description: editableProject.value.description || '',
+            content: editableProject.value.content || '',
+            technologies: editableProject.value.technologies || '',
+            live_url: editableProject.value.live_url || '',
+            is_published: editableProject.value.is_published,
+            imageData: {
+                newFile: imageData.value.newFile,
+                deletedId: imageData.value.deletedId
+            }
+        }
+
+        const updatedProject = await emit('updateProject', projectData)
+        
+        if (updatedProject) {
+            localProject.value = { ...updatedProject }
+            editableProject.value = { ...updatedProject }
+        }
+        
+        isEditing.value = false
+        
+        if (imageUploader.value) {
+            imageUploader.value.clearImageData()
+        }
+
+    } catch (error) {
+        console.error('Error updating project:', error)
+    } finally {
+        isUpdating.value = false
+    }
 }
 
 const emit = defineEmits(['updateProject', 'deleteProject']);
-
-const updateProject = () => {
-    emit('updateProject', editableProject.value);
-    isEditing.value = false
-}
-
-const deleteProject = (id) => {
-    emit('deleteProject', id);
-}
 </script>
 
 <style lang="scss" scoped>

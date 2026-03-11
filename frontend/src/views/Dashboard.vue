@@ -19,11 +19,11 @@
                 </div>
                 <div class="project-counter">
                     <span>Всего проектов: </span>
-                    <b>{{ featuredProjects?.length }}</b>
+                    <b>{{ adminProjects?.length }}</b>
                 </div>
                 <div class="panel__content">
                     <ProjectCard
-                        v-for="project in featuredProjects"
+                        v-for="project in adminProjects"
                         :key="project.id"
                         :project="project"
                         @updateProject="updateProject"
@@ -63,7 +63,7 @@ const isOpenModal = ref(false)
 const isOpenConfirmModal = ref(false);
 const projectIdForDelete = ref();
 
-const featuredProjects = computed(() => projectStore.projects)
+const adminProjects = computed(() => projectStore.projectsAdmin)
 
 const updateProject = async(data) => {
     await projectStore.updateProject(data)
@@ -96,7 +96,7 @@ const closeConfirmModal = () => {
 }
 
 onMounted(() => {
-  projectStore.fetchProjects()
+  projectStore.fetchProjectsAdmin()
 })
 </script>
 

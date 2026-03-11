@@ -1,20 +1,14 @@
 <template>
     <form
-        @submit.prevent="projectStore.createProject"
+        @submit.prevent="createProject"
         class="form form--create-project"
     >
-        <input 
-        type="file" 
-        multiple 
-        accept="image/*"
-        @change="handleFileSelect"
-        >
-        
-        <!-- Превью выбранных изображений -->
-        <div class="preview" v-for="(file, index) in projectStore.formDataProject.files" :key="index">
-        <img :src="file.preview" width="100">
-        <button type="button" @click="removeFile(index)">Удалить</button>
-        </div>
+        <ImageUploader 
+            ref="imageUploader"
+            :existing-images="[]"
+            component-id="create"
+            @images-changed="handleImagesChanged"
+        />
 
         <div class="form-group">
             <input
@@ -73,29 +67,30 @@
 </template>
 
 <script setup>
-
+    import { ref } from 'vue'
     import { useProjectStore } from '@/stores/projectStore'
+    import ImageUploader from '@/components/ImageUploader.vue'
 
     const projectStore = useProjectStore()
+    const imageUploader = ref(null)
 
-    const handleFileSelect = (event) => {
-    const files = Array.from(event.target.files);
-    
-    files.forEach(file => {
-        const reader = new FileReader();
-            reader.onload = (e) => {
-                projectStore.formDataProject.files.push({
-                    file: file,
-                    preview: e.target.result
-                });
-            };
-            reader.readAsDataURL(file);
-        });
-    };
+    const handleImagesChanged = (imageData) => {
+        // Сохраняем данные изображений в store
+        projectStore.formDataProject.files = imageData.newFiles
+    }
 
-    const removeFile = (index) => {
-        projectStore.formDataProject.files.splice(index, 1);
-    };
+    const createProject = async () => {
+        // Получаем актуальные данные изображений из компонента
+        const imageData = imageUploader.value?.getImageData()
+        
+        // Обновляем files в store перед отправкой
+        if (imageData) {
+            projectStore.formDataProject.files = imageData.newFiles
+        }
+        
+        // Вызываем метод создания проекта из store
+        await projectStore.createProject()
+    }
 </script>
 
 <style lang="scss" scoped>
