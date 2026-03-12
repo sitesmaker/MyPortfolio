@@ -12,6 +12,7 @@ import { onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
 
 const authStore = useAuthStore();
 const route = useRoute();

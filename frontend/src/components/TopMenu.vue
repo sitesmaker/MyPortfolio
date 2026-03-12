@@ -24,11 +24,6 @@ const logout = async() => {
     display: flex;
     flex-direction: row;
     gap: 10px;
-    
-    .router-link-active {
-        color: var(--color-link);
-        border-bottom: 2px solid currentColor;
-    }
 
     a {
         padding: 10px 10px 6px;

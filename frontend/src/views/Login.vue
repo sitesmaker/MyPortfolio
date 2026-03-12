@@ -55,7 +55,7 @@ const error = ref('');
 // Если уже авторизован - редирект
 onMounted(() => {
   if (authStore.isAuthenticated) {
-    router.push('/dashboard');
+    router.push({ name: 'dashboard' });
   }
 });
 
@@ -66,8 +66,15 @@ const handleLogin = async () => {
     await authStore.login(form);
 
     // Редирект на исходную страницу или дашборд
-    const redirectPath = route.query.redirect || '/dashboard';
-    router.push(redirectPath);
+    const redirectPath = route.query.redirect;
+    
+    if (redirectPath) {
+      // Если есть redirect в query, используем его
+      router.push(redirectPath);
+    } else {
+      // Иначе редирект по имени маршрута
+      router.push({ name: 'dashboard' });
+    } 
 
   } catch (err) {
     error.value = err.response?.data?.message || 'Неверный email или пароль';

@@ -22,7 +22,55 @@ const routes = [
     path: '/dashboard',
     name: 'dashboard',
     component: () => import('@/views/Dashboard.vue'),
-    meta: { requiresAuth: true }
+    meta: {
+      requiresAuth: true,
+      layout: 'dashboard',
+    }
+  },
+  {
+  path: '/dashboard/admin/projects',
+    name: 'admin-projects',
+    component: () => import('@/views/admin/Projects.vue'),
+    meta: { 
+      requiresAuth: true,
+      layout: 'dashboard',
+    }
+  },
+  {
+    path: '/dashboard/admin/skills',
+    name: 'admin-skills',
+    component: () => import('@/views/admin/Skills.vue'),
+    meta: { 
+      requiresAuth: true,
+      layout: 'dashboard',
+    }
+  },
+  {
+    path: '/dashboard/admin/reviews',
+    name: 'admin-reviews',
+    component: () => import('@/views/admin/Reviews.vue'),
+    meta: { 
+      requiresAuth: true,
+      layout: 'dashboard',
+    }
+  },
+  {
+    path: '/dashboard/admin/messages',
+    name: 'admin-messages',
+    component: () => import('@/views/admin/Messages.vue'),
+    meta: { 
+      requiresAuth: true,
+      layout: 'dashboard',
+    }
+  },
+    {
+    path: '/dashboard/admin/settings',
+    name: 'admin-settings',
+    component: () => import('@/views/admin/Settings.vue'),
+    meta: { 
+      requiresAuth: true,
+      layout: 'dashboard',
+    }
   }
 ];
 

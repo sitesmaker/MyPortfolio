@@ -15,7 +15,6 @@ class SkillSeeder extends Seeder
     {
         Skill::create([
             'name' => 'Vue.js',
-            'category' => 'Frontend',
             'proficiency' => 90,
             'icon' => 'vuejs',
             'sort_order' => 1
@@ -23,7 +22,6 @@ class SkillSeeder extends Seeder
 
         Skill::create([
             'name' => 'Laravel',
-            'category' => 'Backend',
             'proficiency' => 85,
             'icon' => 'laravel',
             'sort_order' => 1

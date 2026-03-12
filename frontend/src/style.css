@@ -126,6 +126,12 @@ footer {
   flex-grow: 0;
 }
 
+.router-link-active {
+  display: inline-flex;
+  color: var(--color-link);
+  border-bottom: 2px solid currentColor;
+}
+
 a {
   display: inline-block;
   text-decoration: none;
