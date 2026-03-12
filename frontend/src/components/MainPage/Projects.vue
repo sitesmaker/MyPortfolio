@@ -33,7 +33,6 @@ import { computed, onMounted } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
 
 const projectStore = useProjectStore()
-
 const featuredProjects = computed(() => projectStore.projects)
 
 onMounted(() => {

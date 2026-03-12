@@ -1,32 +1,32 @@
 <template>
     <form
-        @submit.prevent="createProject"
-        class="form form--create-project"
+        @submit.prevent="createSkill"
+        class="form form--create-skill"
     >
-        <ImageUploader 
+        <!-- <ImageUploader 
             ref="imageUploader"
             :existing-images="[]"
             component-id="create"
             @images-changed="handleImagesChanged"
-        />
+        /> -->
 
         <div class="form-group">
             <input
                 type="text"
-                name="title"
-                id="title"
+                name="name"
+                id="name"
                 placeholder=" "
-                v-model="projectStore.formDataProject.title"
+                v-model="skillStore.formDataSkill.name"
             >
             <label for="title">Название</label>
         </div>
-        <div class="form-group">
+        <!-- <div class="form-group">
             <textarea
                 type="text"
                 name="description"
                 id="description"
                 placeholder=" "
-                v-model="projectStore.formDataProject.description"
+                v-model="skillStore.formDataSkill.description"
             >
             </textarea>
             <label for="description">Краткое описание</label>
@@ -37,7 +37,7 @@
                 name="content"
                 id="content"
                 placeholder=" "
-                v-model="projectStore.formDataProject.content"
+                v-model="skillStore.formDataSkill.content"
             >
             </textarea>
             <label for="content">Контент</label>
@@ -48,7 +48,7 @@
                 name="technologies"
                 id="technologies"
                 placeholder=" "
-                v-model="projectStore.formDataProject.technologies"
+                v-model="skillStore.formDataSkill.technologies"
             >
             <label for="technologies">Технологии</label>
         </div>
@@ -58,38 +58,38 @@
                 name="live_url"
                 id="live_url"
                 placeholder=" "
-                v-model="projectStore.formDataProject.live_url"
+                v-model="skillStore.formDataSkill.live_url"
             >
             <label for="live_url">Ссылка на проект</label>
-        </div>
-        <button type="submit">Создать проект</button>
+        </div> -->
+        <button type="submit">Добавить скилл</button>
     </form>
 </template>
 
 <script setup>
     import { ref } from 'vue'
-    import { useProjectStore } from '@/stores/projectStore'
-    import ImageUploader from '@/components/ImageUploader.vue'
+    import { useSkillStore } from '@/stores/skillStore'
+    // import ImageUploader from '@/components/ImageUploader.vue'
 
-    const projectStore = useProjectStore()
+    const skillStore = useSkillStore()
     const imageUploader = ref(null)
 
     const handleImagesChanged = (imageData) => {
         // Сохраняем данные изображений в store
-        projectStore.formDataProject.files = imageData.newFiles
+        skillStore.formDataSkill.files = imageData.newFiles
     }
 
-    const createProject = async () => {
+    const createSkill = async () => {
         // Получаем актуальные данные изображений из компонента
         const imageData = imageUploader.value?.getImageData()
         
         // Обновляем files в store перед отправкой
         if (imageData) {
-            projectStore.formDataProject.files = imageData.newFiles
+            skillStore.formDataSkill.files = imageData.newFiles
         }
         
         // Вызываем метод создания проекта из store
-        await projectStore.createProject()
+        await skillStore.createSkill()
     }
 </script>
 
